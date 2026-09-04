@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="google" content="notranslate">
     <meta name="referrer" content="no-referrer">
-    <title>Study With Me - Automated Pomodoro</title>
+    <title>Study With Me - Focus Pomodoro</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&family=Playfair+Display:ital@1&display=swap" rel="stylesheet">
     <style>
         * { box-sizing: border-box; }
@@ -22,15 +22,15 @@
             background-size: cover;
             background-position: center;
             position: relative;
-            transition: background-image 1.5s ease-in-out;
+            transition: background-image 2s ease-in-out;
         }
 
-        /* Calm dark overlay for high contrast */
+        /* Dark overlay for optimal text contrast & focus */
         body::before {
             content: '';
             position: absolute;
             top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0, 0, 0, 0.45);
+            background: rgba(0, 0, 0, 0.50);
             z-index: 0;
         }
 
@@ -49,7 +49,7 @@
             font-size: 4rem;
             font-weight: 400;
             color: white;
-            text-shadow: 0px 4px 15px rgba(0,0,0,0.7);
+            text-shadow: 0px 4px 15px rgba(0,0,0,0.8);
         }
 
         .tab-group {
@@ -66,12 +66,13 @@
             font-weight: 600;
             font-size: 1rem;
             backdrop-filter: blur(8px);
-            transition: all 0.3s ease;
+            transition: all 0.4s ease;
         }
         .tab-btn.active {
             background-color: white;
             color: #0f172a;
             border: 1px solid white;
+            box-shadow: 0px 0px 15px rgba(255,255,255,0.4);
         }
 
         #timer {
@@ -80,7 +81,7 @@
             color: white;
             letter-spacing: -2px;
             line-height: 1;
-            text-shadow: 0px 5px 25px rgba(0,0,0,0.8);
+            text-shadow: 0px 5px 25px rgba(0,0,0,0.9);
         }
 
         #cycle-counter {
@@ -95,10 +96,8 @@
 </head>
 <body>
 
-    <!-- Ultra-Calm, Soothing Ambient Stream (SomaFM Groove Salad - Copyright Safe) -->
-    <audio id="bgMusic" autoplay loop crossorigin="anonymous">
-        <source src="https://ice2.somafm.com/groovesalad-128-mp3" type="audio/mpeg">
-    </audio>
+    <!-- Dynamic Audio Player -->
+    <audio id="bgAudio" autoplay loop crossorigin="anonymous"></audio>
 
     <div class="dashboard-container">
         <div class="logo-main">study with me</div>
@@ -116,25 +115,45 @@
     </div>
 
 <script>
-    // Times in seconds: Intro (5m), Pomo (25m), Short (5m), Long (10m)
     const TIMES = { intro: 300, pomo: 1500, short: 300, long: 600 };
-    
-    // High Quality Aesthetic Nature/Lo-Fi Background Animations
-    const bgGifs = [
-        "https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExOHp1ZHZpa2dyMHFjZDFxOHM5MThqNmxuaXJmc2k1MXdndmIxdGZyNyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/3o7TKrEzvLbgzG1nQA/giphy.gif",
+
+    // Study & Focus specific high-quality Gifs
+    const STUDY_GIFS = [
         "https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExM3ZydnA0cnR1dzkyYmxreXV4OWdpOHRwMm9uOGd1NDJqcjdidWZpNSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/Lmq2XFqI3t0Xh1A6zP/giphy.gif",
-        "https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExeXJ4bnBveHJocHZpZGttdHdycmF5dnd6cnIxb3R2bW9ndDFvYnp0cyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/xT9IgFbwSnsg8x1l5u/giphy.gif",
-        "https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExNWVveTJ4aXNudmt5MnVpMnltczU5MXQxaTBxMHBzZzdzczl6MXllYiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/5wWf7H0qoWaNnkZBucU/giphy.gif",
-        "https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExNDMyaWZ2dXNxeGNxeWl4eDZnaWh2dTRrMGs1eThoNWw4aDV3dHlreCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/3o6Zt6b5Pz41bM6q0w/giphy.gif"
+        "https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExNHM2d2h5NGtzamJpYW4wOWk4ZzMzaGlzNmFqbmRxamJ3MXZwdGFvNCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/139e89EY9q23pe/giphy.gif",
+        "https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExeXJ4bnBveHJocHZpZGttdHdycmF5dnd6cnIxb3R2bW9ndDFvYnp0cyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/xT9IgFbwSnsg8x1l5u/giphy.gif"
     ];
+
+    // Relaxing Nature / Break Gifs
+    const BREAK_GIFS = [
+        "https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExOHp1ZHZpa2dyMHFjZDFxOHM5MThqNmxuaXJmc2k1MXdndmIxdGZyNyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/3o7TKrEzvLbgzG1nQA/giphy.gif",
+        "https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExNWVveTJ4aXNudmt5MnVpMnltczU5MXQxaTBxMHBzZzdzczl6MXllYiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/5wWf7H0qoWaNnkZBucU/giphy.gif"
+    ];
+
+    // Audio Streams matched for each state
+    const AUDIO_STREAMS = {
+        intro: "https://ice2.somafm.com/groovesalad-128-mp3",    // Gentle Ambient Warmup
+        pomo: "https://ice1.somafm.com/dronezone-128-mp3",       // Pure Focus Drone/Tone (Zero Distraction)
+        short: "https://ice2.somafm.com/iloveradio-128-mp3",    // Light Chill Ambient
+        long: "https://ice2.somafm.com/groovesalad-128-mp3"     // Relaxing Chillout
+    };
 
     let currentSessionType = 'intro';
     let timeLeft = TIMES.intro;
     let studySessionsCompleted = 0;
     
-    function changeBackground() {
-        let randomIndex = Math.floor(Math.random() * bgGifs.length);
-        document.body.style.backgroundImage = `url('${bgGifs[randomIndex]}')`;
+    function updateTheme(type) {
+        // Change Background
+        let gifs = (type === 'pomo' || type === 'intro') ? STUDY_GIFS : BREAK_GIFS;
+        let randomIndex = Math.floor(Math.random() * gifs.length);
+        document.body.style.backgroundImage = `url('${gifs[randomIndex]}')`;
+
+        // Change Audio
+        const audio = document.getElementById('bgAudio');
+        if (audio.src !== AUDIO_STREAMS[type]) {
+            audio.src = AUDIO_STREAMS[type];
+            audio.play().catch(e => console.log("Audio play deferred"));
+        }
     }
 
     function updateDisplay() {
@@ -178,9 +197,9 @@
         } else {
             currentSessionType = 'pomo';
             timeLeft = TIMES.pomo;
-            changeBackground();
         }
         
+        updateTheme(currentSessionType);
         updateUI(currentSessionType);
         updateDisplay();
     }
@@ -194,7 +213,8 @@
         }
     }, 1000);
 
-    changeBackground();
+    // Initial Start
+    updateTheme('intro');
     updateUI('intro');
     updateDisplay();
 </script>
