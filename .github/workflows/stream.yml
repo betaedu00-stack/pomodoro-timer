@@ -16,24 +16,30 @@ jobs:
         env:
           STREAM_KEY: ${{ secrets.YOUTUBE_STREAM_KEY }}
         run: |
-          # 1. Virtual Display එකක් 1920x1080 resolution එකෙන් start කිරීම
           Xvfb :99 -screen 0 1920x1080x24 &
           export DISPLAY=:99
           sleep 3
 
-          # 2. Chromium First-Run Pop-ups Bypass කරමින් Fullscreen Open කිරීම
+          # Browser with Music Autoplay Bypass & Fullscreen Fix
           chromium-browser --no-sandbox \
+            --window-size=1920,1080 \
+            --window-position=0,0 \
             --start-fullscreen \
             --kiosk \
             --no-first-run \
             --no-default-browser-check \
             --disable-search-engine-choice-screen \
+            --disable-translate \
+            --disable-features=Translate \
+            --autoplay-policy=no-user-gesture-required \
             "https://betaedu00-stack.github.io/pomodoro-timer/" &
           sleep 5
 
-          # 3. Virtual Display එක Capture කර YouTube එකට Stream කිරීම
+          # Capture Screen AND System Audio for Live Stream
           ffmpeg -f x11grab -draw_mouse 0 -s 1920x1080 -i :99.0 \
+            -f pulse -i default -ac 2 \
             -f lavfi -i anullsrc=channel_layout=stereo:sample_rate=44100 \
+            -filter_complex "[1:a][2:a]amix=inputs=2[a]" \
             -c:v libx264 -preset ultrafast -pix_fmt yuv420p -g 60 -b:v 3000k \
-            -c:a aac -b:a 128k -ar 44100 \
+            -map 0:v -map "[a]" -c:a aac -b:a 128k -ar 44100 \
             -f flv "rtmp://a.rtmp.youtube.com/live2/$STREAM_KEY"
