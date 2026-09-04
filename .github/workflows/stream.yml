@@ -11,44 +11,40 @@ jobs:
     - name: Checkout Code
       uses: actions/checkout@v4
 
-    - name: Install Streaming Tools & Audio Server
+    - name: Install Streaming Tools & Window Manager
       run: |
         sudo apt-get update
-        sudo apt-get install -y ffmpeg xvfb chromium-browser pulseaudio dbus-x11 python3
+        sudo apt-get install -y ffmpeg xvfb openbox chromium-browser pulseaudio dbus-x11 python3
 
     - name: Start Live Stream to YouTube
       env:
         YOUTUBE_STREAM_KEY: ${{ secrets.YOUTUBE_STREAM_KEY }}
       run: |
-        # 1. DBus සහ PulseAudio Virtual Audio Server ආරම්භ කිරීම
+        # 1. DBus සහ PulseAudio Virtual Audio Server සක්‍රීය කිරීම
         export $(dbus-launch)
-        pulseaudio --start --exit-idle-time=-1 || true
-        pactl load-module module-null-sink sink_name=VirtualSink sink_properties=device.description="VirtualSink" || true
-        pactl set-default-sink VirtualSink || true
+        pulseaudio -D --exit-idle-time=-1
+        sleep 2
+        pactl load-module module-null-sink sink_name=VirtualSink sink_properties=device.description="VirtualSink"
+        pactl set-default-sink VirtualSink
 
-        # 2. Virtual Display (1920x1080 Full HD) ආරම්භ කිරීම
+        # 2. Virtual Display (1920x1080) සහ Openbox Window Manager ආරම්භ කිරීම
         Xvfb :99 -screen 0 1920x1080x24 &
         export DISPLAY=:99
-        sleep 3
+        sleep 2
+        openbox &
+        sleep 1
 
-        # 3. Local Python HTTP Server එකක් Run කිරීම (Blackscreen / file:// Rendering ප්‍රශ්න නැති කිරීමට)
+        # 3. Local Python Web Server ආරම්භ කිරීම
         python3 -m http.server 8000 --directory "$GITHUB_WORKSPACE" &
         sleep 2
 
-        # 4. Chromium Browser (Clean Profile & Disable GPU for Stable Rendering)
+        # 4. Chromium Browser (Full Screen Rendering)
         mkdir -p /tmp/chrome-profile
         chromium-browser --user-data-dir=/tmp/chrome-profile \
           --no-sandbox \
           --disable-setuid-sandbox \
           --disable-gpu \
           --disable-dev-shm-usage \
-          --disable-software-rasterizer \
-          --disable-infobars \
-          --disable-session-crashed-bubble \
-          --disable-popup-blocking \
-          --no-first-run \
-          --no-default-browser-check \
-          --disable-features=Translate \
           --window-size=1920,1080 \
           --window-position=0,0 \
           --start-fullscreen \
@@ -56,7 +52,7 @@ jobs:
           --kiosk http://localhost:8000/index.html &
         sleep 8
 
-        # 5. FFmpeg මගින් Screen සහ Audio Capture කර YouTube Live වෙත Stream කිරීම
+        # 5. FFmpeg මගින් Screen සහ Audio Capture කර YouTube වෙත Stream කිරීම
         ffmpeg -re -f x11grab -draw_mouse 0 -s 1920x1080 -i :99.0 \
         -f pulse -i VirtualSink.monitor \
         -c:v libx264 -preset ultrafast -tune zerolatency -pix_fmt yuv420p -g 60 -b:v 3000k \
