@@ -1,0 +1,33 @@
+name: Pomodoro Live Stream
+
+on:
+  workflow_dispatch:
+
+jobs:
+  stream:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install Streaming Tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg xvfb chromium-browser
+
+      - name: Start Live Stream to YouTube
+        env:
+          STREAM_KEY: ${{ secrets.YOUTUBE_STREAM_KEY }}
+        run: |
+          # 1. Virtual Display එකක් 1920x1080 resolution එකෙන් start කිරීම
+          Xvfb :99 -screen 0 1920x1080x24 &
+          export DISPLAY=:99
+          sleep 3
+
+          # 2. Chromium Browser එක හරහා Pomodoro Web Page එක Fullscreen Open කිරීම
+          chromium-browser --no-sandbox --start-fullscreen --kiosk "https://betaedu00-stack.github.io/pomodoro-timer/" &
+          sleep 5
+
+          # 3. Virtual Display එක Capture කර FFmpeg හරහා YouTube Live එකට Stream කිරීම
+          ffmpeg -f x11grab -draw_mouse 0 -s 1920x1080 -i :99.0 \
+            -f lavfi -i anullsrc=channel_layout=stereo:sample_rate=44100 \
+            -c:v libx264 -preset ultrafast -pix_fmt yuv420p -g 60 -b:v 3000k \
+            -c:a aac -b:a 128k -ar 44100 \
+            -f flv "rtmp://a.rtmp.youtube.com/live2/$STREAM_KEY"
