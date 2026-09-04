@@ -112,7 +112,6 @@
     </div>
 
 <script>
-    // Timers in seconds
     const TIMES = { intro: 300, pomo: 1500, short: 300, long: 600 };
 
     const STUDY_BACKGROUNDS = [
@@ -132,11 +131,15 @@
     let timeLeft = TIMES.intro;
     let studySessionsCompleted = 0;
 
-    // Web Audio API Sound Generator (100% Copyright Free & Generated Live)
     let audioCtx = null;
+    let activeInterval = null;
     let activeNodes = [];
 
-    function stopAudio() {
+    function stopMusic() {
+        if (activeInterval) {
+            clearInterval(activeInterval);
+            activeInterval = null;
+        }
         activeNodes.forEach(node => {
             try {
                 if (node.stop) node.stop();
@@ -146,8 +149,8 @@
         activeNodes = [];
     }
 
-    function playAudio(type) {
-        stopAudio();
+    function playGenerativeMusic(type) {
+        stopMusic();
         if (!audioCtx) {
             audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         }
@@ -156,55 +159,81 @@
         }
 
         if (type === 'pomo' || type === 'intro') {
-            // Study Time: Soft Pink/Brown Noise (Deep Focus & Calm Fan/Rain-like hum)
-            const bufferSize = audioCtx.sampleRate * 2;
-            const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-            const output = noiseBuffer.getChannelData(0);
-            let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
-            
-            for (let i = 0; i < bufferSize; i++) {
-                let white = Math.random() * 2 - 1;
-                b0 = 0.99886 * b0 + white * 0.0555179;
-                b1 = 0.99332 * b1 + white * 0.0750759;
-                b2 = 0.96900 * b2 + white * 0.1538520;
-                b3 = 0.86650 * b3 + white * 0.3104856;
-                b4 = 0.55000 * b4 + white * 0.5329522;
-                b5 = -0.7616 * b5 - white * 0.0168980;
-                output[i] = b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362;
-                output[i] *= 0.03; // Volume level
-                b6 = white * 0.115926;
+            // STUDY TIME: Calm Ambient Chords (Deep, relaxing, low-frequency pads)
+            const chordFrequencies = [
+                [130.81, 196.00, 246.94], // C3, G3, B3 (Peaceful atmosphere)
+                [110.00, 164.81, 220.00], // A2, E3, A3
+                [146.83, 220.00, 261.63], // D3, A3, C4
+                [98.00, 146.83, 196.00]   // G2, D3, G3
+            ];
+
+            let chordIndex = 0;
+
+            function playChord() {
+                if (currentSessionType !== 'pomo' && currentSessionType !== 'intro') return;
+                const freqs = chordFrequencies[chordIndex];
+                chordIndex = (chordIndex + 1) % chordFrequencies.length;
+
+                freqs.forEach(freq => {
+                    if (!audioCtx) return;
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    const filter = audioCtx.createBiquadFilter();
+
+                    osc.type = 'sine'; // Smooth tone
+                    osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+
+                    filter.type = 'lowpass';
+                    filter.frequency.setValueAtTime(300, audioCtx.currentTime);
+
+                    // Smooth Fade In and Fade Out (Ambient swell)
+                    gain.gain.setValueAtTime(0.001, audioCtx.currentTime);
+                    gain.gain.linearRampToValueAtTime(0.04, audioCtx.currentTime + 3);
+                    gain.gain.linearRampToValueAtTime(0.001, audioCtx.currentTime + 8);
+
+                    osc.connect(filter);
+                    filter.connect(gain);
+                    gain.connect(audioCtx.destination);
+
+                    osc.start(audioCtx.currentTime);
+                    osc.stop(audioCtx.currentTime + 8.5);
+                    activeNodes.push(osc);
+                });
             }
 
-            const whiteNoise = audioCtx.createBufferSource();
-            whiteNoise.buffer = noiseBuffer;
-            whiteNoise.loop = true;
-
-            const filter = audioCtx.createBiquadFilter();
-            filter.type = 'lowpass';
-            filter.frequency.setValueAtTime(400, audioCtx.currentTime);
-
-            whiteNoise.connect(filter);
-            filter.connect(audioCtx.destination);
-            whiteNoise.start();
-            activeNodes.push(whiteNoise);
+            playChord();
+            activeInterval = setInterval(playChord, 8000); // Change chord every 8 seconds
 
         } else {
-            // Break Time: Enjoyable Harmonic Soft Chords (Relaxing tones)
-            const frequencies = [261.63, 329.63, 392.00]; // C Major chord tones
-            frequencies.forEach(freq => {
+            // BREAK TIME: Joyful / Upbeat Lofi Melodic Arpeggios (Relaxing & Pleasant)
+            const melodyNotes = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25]; // C major scale notes
+
+            function playNote() {
+                if (currentSessionType !== 'short' && currentSessionType !== 'long') return;
+                if (!audioCtx) return;
+
+                const randomFreq = melodyNotes[Math.floor(Math.random() * melodyNotes.length)];
+                
                 const osc = audioCtx.createOscillator();
                 const gain = audioCtx.createGain();
 
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-                
-                gain.gain.setValueAtTime(0.015, audioCtx.currentTime);
+                osc.type = 'triangle'; // Brighter, pleasant tone for breaks
+                osc.frequency.setValueAtTime(randomFreq, audioCtx.currentTime);
+
+                gain.gain.setValueAtTime(0.001, audioCtx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.025, audioCtx.currentTime + 0.1);
+                gain.gain.linearRampToValueAtTime(0.001, audioCtx.currentTime + 1.5);
 
                 osc.connect(gain);
                 gain.connect(audioCtx.destination);
-                osc.start();
+
+                osc.start(audioCtx.currentTime);
+                osc.stop(audioCtx.currentTime + 1.6);
                 activeNodes.push(osc);
-            });
+            }
+
+            playNote();
+            activeInterval = setInterval(playNote, 1200); // Play a pleasant note every 1.2 seconds
         }
     }
     
@@ -213,7 +242,7 @@
         let randomIndex = Math.floor(Math.random() * bgList.length);
         document.body.style.backgroundImage = `url('${bgList[randomIndex]}')`;
 
-        playAudio(type);
+        playGenerativeMusic(type);
     }
 
     function updateDisplay() {
