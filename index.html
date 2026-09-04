@@ -25,12 +25,11 @@
             transition: background-image 2s ease-in-out;
         }
 
-        /* Dark overlay for optimal text contrast & focus */
         body::before {
             content: '';
             position: absolute;
             top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0, 0, 0, 0.50);
+            background: rgba(0, 0, 0, 0.45);
             z-index: 0;
         }
 
@@ -96,7 +95,6 @@
 </head>
 <body>
 
-    <!-- Dynamic Audio Player -->
     <audio id="bgAudio" autoplay loop crossorigin="anonymous"></audio>
 
     <div class="dashboard-container">
@@ -117,25 +115,23 @@
 <script>
     const TIMES = { intro: 300, pomo: 1500, short: 300, long: 600 };
 
-    // Study & Focus specific high-quality Gifs
-    const STUDY_GIFS = [
-        "https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExM3ZydnA0cnR1dzkyYmxreXV4OWdpOHRwMm9uOGd1NDJqcjdidWZpNSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/Lmq2XFqI3t0Xh1A6zP/giphy.gif",
-        "https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExNHM2d2h5NGtzamJpYW4wOWk4ZzMzaGlzNmFqbmRxamJ3MXZwdGFvNCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/139e89EY9q23pe/giphy.gif",
-        "https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExeXJ4bnBveHJocHZpZGttdHdycmF5dnd6cnIxb3R2bW9ndDFvYnp0cyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/xT9IgFbwSnsg8x1l5u/giphy.gif"
+    // Direct High Quality 4K Nature & Study Images (Hotlink Safe)
+    const STUDY_BACKGROUNDS = [
+        "https://images.unsplash.com/photo-1507842217343-583bb7270b66?q=80&w=2000&auto=format&fit=crop",
+        "https://images.unsplash.com/photo-1516979187457-637abb4f9353?q=80&w=2000&auto=format&fit=crop",
+        "https://images.unsplash.com/photo-1497633762265-9d179a990aa6?q=80&w=2000&auto=format&fit=crop"
     ];
 
-    // Relaxing Nature / Break Gifs
-    const BREAK_GIFS = [
-        "https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExOHp1ZHZpa2dyMHFjZDFxOHM5MThqNmxuaXJmc2k1MXdndmIxdGZyNyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/3o7TKrEzvLbgzG1nQA/giphy.gif",
-        "https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExNWVveTJ4aXNudmt5MnVpMnltczU5MXQxaTBxMHBzZzdzczl6MXllYiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/5wWf7H0qoWaNnkZBucU/giphy.gif"
+    const BREAK_BACKGROUNDS = [
+        "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?q=80&w=2000&auto=format&fit=crop",
+        "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?q=80&w=2000&auto=format&fit=crop"
     ];
 
-    // Audio Streams matched for each state
     const AUDIO_STREAMS = {
-        intro: "https://ice2.somafm.com/groovesalad-128-mp3",    // Gentle Ambient Warmup
-        pomo: "https://ice1.somafm.com/dronezone-128-mp3",       // Pure Focus Drone/Tone (Zero Distraction)
-        short: "https://ice2.somafm.com/iloveradio-128-mp3",    // Light Chill Ambient
-        long: "https://ice2.somafm.com/groovesalad-128-mp3"     // Relaxing Chillout
+        intro: "https://ice2.somafm.com/groovesalad-128-mp3",
+        pomo: "https://ice1.somafm.com/dronezone-128-mp3",
+        short: "https://ice2.somafm.com/iloveradio-128-mp3",
+        long: "https://ice2.somafm.com/groovesalad-128-mp3"
     };
 
     let currentSessionType = 'intro';
@@ -143,12 +139,10 @@
     let studySessionsCompleted = 0;
     
     function updateTheme(type) {
-        // Change Background
-        let gifs = (type === 'pomo' || type === 'intro') ? STUDY_GIFS : BREAK_GIFS;
-        let randomIndex = Math.floor(Math.random() * gifs.length);
-        document.body.style.backgroundImage = `url('${gifs[randomIndex]}')`;
+        let bgList = (type === 'pomo' || type === 'intro') ? STUDY_BACKGROUNDS : BREAK_BACKGROUNDS;
+        let randomIndex = Math.floor(Math.random() * bgList.length);
+        document.body.style.backgroundImage = `url('${bgList[randomIndex]}')`;
 
-        // Change Audio
         const audio = document.getElementById('bgAudio');
         if (audio.src !== AUDIO_STREAMS[type]) {
             audio.src = AUDIO_STREAMS[type];
@@ -213,7 +207,6 @@
         }
     }, 1000);
 
-    // Initial Start
     updateTheme('intro');
     updateUI('intro');
     updateDisplay();
