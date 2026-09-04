@@ -21,11 +21,17 @@ jobs:
           export DISPLAY=:99
           sleep 3
 
-          # 2. Chromium Browser එක හරහා Pomodoro Web Page එක Fullscreen Open කිරීම
-          chromium-browser --no-sandbox --start-fullscreen --kiosk "https://betaedu00-stack.github.io/pomodoro-timer/" &
+          # 2. Chromium First-Run Pop-ups Bypass කරමින් Fullscreen Open කිරීම
+          chromium-browser --no-sandbox \
+            --start-fullscreen \
+            --kiosk \
+            --no-first-run \
+            --no-default-browser-check \
+            --disable-search-engine-choice-screen \
+            "https://betaedu00-stack.github.io/pomodoro-timer/" &
           sleep 5
 
-          # 3. Virtual Display එක Capture කර FFmpeg හරහා YouTube Live එකට Stream කිරීම
+          # 3. Virtual Display එක Capture කර YouTube එකට Stream කිරීම
           ffmpeg -f x11grab -draw_mouse 0 -s 1920x1080 -i :99.0 \
             -f lavfi -i anullsrc=channel_layout=stereo:sample_rate=44100 \
             -c:v libx264 -preset ultrafast -pix_fmt yuv420p -g 60 -b:v 3000k \
