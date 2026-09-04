@@ -14,7 +14,7 @@ jobs:
     - name: Install Streaming Tools & Audio Server
       run: |
         sudo apt-get update
-        sudo apt-get install -y ffmpeg xvfb chromium-browser pulseaudio dbus-x11
+        sudo apt-get install -y ffmpeg xvfb chromium-browser pulseaudio dbus-x11 python3
 
     - name: Start Live Stream to YouTube
       env:
@@ -26,12 +26,16 @@ jobs:
         pactl load-module module-null-sink sink_name=VirtualSink sink_properties=device.description="VirtualSink" || true
         pactl set-default-sink VirtualSink || true
 
-        # 2. Virtual Display (1920x1080) ආරම්භ කිරීම
+        # 2. Virtual Display (1920x1080 Full HD) ආරම්භ කිරීම
         Xvfb :99 -screen 0 1920x1080x24 &
         export DISPLAY=:99
         sleep 3
 
-        # 3. Chromium (GPU disable කර Black screen ප්‍රශ්නය සම්පූර්ණයෙන් විසඳීම)
+        # 3. Local Python HTTP Server එකක් Run කිරීම (Blackscreen / file:// Rendering ප්‍රශ්න නැති කිරීමට)
+        python3 -m http.server 8000 --directory "$GITHUB_WORKSPACE" &
+        sleep 2
+
+        # 4. Chromium Browser (Clean Profile & Disable GPU for Stable Rendering)
         mkdir -p /tmp/chrome-profile
         chromium-browser --user-data-dir=/tmp/chrome-profile \
           --no-sandbox \
@@ -44,13 +48,15 @@ jobs:
           --disable-popup-blocking \
           --no-first-run \
           --no-default-browser-check \
+          --disable-features=Translate \
           --window-size=1920,1080 \
+          --window-position=0,0 \
           --start-fullscreen \
           --autoplay-policy=no-user-gesture-required \
-          --kiosk file://$GITHUB_WORKSPACE/index.html &
-        sleep 7
+          --kiosk http://localhost:8000/index.html &
+        sleep 8
 
-        # 4. FFmpeg මගින් Screen සහ Audio Capture කර YouTube වෙත Stream කිරීම
+        # 5. FFmpeg මගින් Screen සහ Audio Capture කර YouTube Live වෙත Stream කිරීම
         ffmpeg -re -f x11grab -draw_mouse 0 -s 1920x1080 -i :99.0 \
         -f pulse -i VirtualSink.monitor \
         -c:v libx264 -preset ultrafast -tune zerolatency -pix_fmt yuv420p -g 60 -b:v 3000k \
