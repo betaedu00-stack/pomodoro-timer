@@ -29,11 +29,12 @@ jobs:
         chromium-browser --no-sandbox --disable-setuid-sandbox --autoplay-policy=no-user-gesture-required --start-fullscreen --kiosk file://$GITHUB_WORKSPACE/index.html &
         sleep 5
 
-        # 3. FFmpeg මගින් Screen/Audio Capture කර YouTube වෙත Auto-Reconnect සමග Stream කිරීම
+        # 3. FFmpeg මගින් Screen එක පමණක් Capture කර YouTube වෙත ස්ථාවරව Stream කිරීම (Silent Audio සමග)
         ffmpeg -re -f x11grab -draw_mouse 0 -s 1920x1080 -i :99.0 \
-        -f pulse -i default \
+        -f lavfi -i anullsrc=channel_layout=stereo:sample_rate=44100 \
         -c:v libx264 -preset ultrafast -tune zerolatency -pix_fmt yuv420p -g 60 -b:v 3000k \
-        -c:a aac -b:a 128k -ar 44100 \
+        -c:a aac -b:a 128k \
+        -shortest \
         -flvflags no_duration_filesize \
         -reconnect 1 -reconnect_at_eof 1 -reconnect_streamed 1 -reconnect_delay_max 2 \
         -f flv "rtmp://a.rtmp.youtube.com/live2/$YOUTUBE_STREAM_KEY"
