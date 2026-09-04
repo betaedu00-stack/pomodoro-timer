@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="si">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pomodoro Study Timer</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #0f172a;
+            color: #ffffff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .timer-card {
+            background-color: #1e293b;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            text-align: center;
+            width: 320px;
+        }
+        #status {
+            font-size: 1.5rem;
+            color: #38bdf8;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+        #timer {
+            font-size: 4.5rem;
+            font-weight: bold;
+            margin-bottom: 25px;
+            color: #f8fafc;
+        }
+        .btn-group button {
+            font-size: 1rem;
+            font-weight: bold;
+            padding: 12px 20px;
+            margin: 5px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .btn-start { background-color: #22c55e; color: white; }
+        .btn-pause { background-color: #eab308; color: white; }
+        .btn-reset { background-color: #ef4444; color: white; }
+        button:hover { opacity: 0.8; }
+    </style>
+</head>
+<body>
+
+<div class="timer-card">
+    <div id="status">පාඩම් වෙලාව (Study)</div>
+    <div id="timer">30:00</div>
+    <div class="btn-group">
+        <button class="btn-start" onclick="startTimer()">Start</button>
+        <button class="btn-pause" onclick="pauseTimer()">Pause</button>
+        <button class="btn-reset" onclick="resetTimer()">Reset</button>
+    </div>
+</div>
+
+<script>
+    let timeLeft = 1800; // විනාඩි 30 (තත්පර වලින්)
+    let timerId = null;
+    let isStudySession = true;
+
+    function updateDisplay() {
+        let minutes = Math.floor(timeLeft / 60);
+        let seconds = timeLeft % 60;
+        document.getElementById('timer').innerText = 
+            `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    }
+
+    function startTimer() {
+        if (timerId !== null) return;
+        
+        timerId = setInterval(() => {
+            if (timeLeft > 0) {
+                timeLeft--;
+                updateDisplay();
+            } else {
+                clearInterval(timerId);
+                timerId = null;
+                isStudySession = !isStudySession;
+                
+                if (isStudySession) {
+                    timeLeft = 1800; // විනාඩි 30
+                    document.getElementById('status').innerText = "පාඩම් වෙලාව (Study)";
+                    document.getElementById('status').style.color = "#38bdf8";
+                } else {
+                    timeLeft = 300; // විනාඩි 5
+                    document.getElementById('status').innerText = "විවේක කාලය (Break)";
+                    document.getElementById('status').style.color = "#4ade80";
+                }
+                updateDisplay();
+                startTimer();
+            }
+        }, 1000);
+    }
+
+    function pauseTimer() {
+        clearInterval(timerId);
+        timerId = null;
+    }
+
+    function resetTimer() {
+        pauseTimer();
+        isStudySession = true;
+        timeLeft = 1800;
+        document.getElementById('status').innerText = "පාඩම් වෙලාව (Study)";
+        document.getElementById('status').style.color = "#38bdf8";
+        updateDisplay();
+    }
+</script>
+
+</body>
+</html>
