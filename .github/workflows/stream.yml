@@ -9,35 +9,49 @@ jobs:
 
     steps:
     - name: Checkout Code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
-    - name: Install Streaming Tools
+    - name: Install Streaming Tools & Audio Server
       run: |
         sudo apt-get update
-        sudo apt-get install -y ffmpeg xvfb chromium-browser
+        sudo apt-get install -y ffmpeg xvfb chromium-browser pulseaudio dbus-x11
 
     - name: Start Live Stream to YouTube
       env:
         YOUTUBE_STREAM_KEY: ${{ secrets.YOUTUBE_STREAM_KEY }}
       run: |
-        # 1. Virtual Display (1920x1080) ආරම්භ කිරීම
+        # 1. DBus සහ PulseAudio Virtual Audio Server ආරම්භ කිරීම (Browser Audio capture සඳහා)
+        export $(dbus-launch)
+        pulseaudio --start --exit-idle-time=-1
+        pactl load-module module-null-sink sink_name=VirtualSink sink_properties=device.description="VirtualSink"
+        pactl set-default-sink VirtualSink
+
+        # 2. Virtual Display (1920x1080) ආරම්භ කිරීම
         Xvfb :99 -screen 0 1920x1080x24 &
         export DISPLAY=:99
         sleep 3
 
-        # 2. Chromium Browser එක Fullscreen මගින් index.html පෙන්වීම
-        chromium-browser --no-sandbox --disable-setuid-sandbox --autoplay-policy=no-user-gesture-required --start-fullscreen --kiosk file://$GITHUB_WORKSPACE/index.html &
+        # 3. Chromium Browser එක Pop-up / Terms of Service නොපෙනෙන සේ Clean Kiosk Mode එකෙන් Run කිරීම
+        mkdir -p /tmp/chrome-profile
+        chromium-browser --user-data-dir=/tmp/chrome-profile \
+          --no-sandbox \
+          --disable-setuid-sandbox \
+          --disable-infobars \
+          --disable-session-crashed-bubble \
+          --disable-popup-blocking \
+          --no-first-run \
+          --no-default-browser-check \
+          --disable-fre \
+          --autoplay-policy=no-user-gesture-required \
+          --start-fullscreen \
+          --kiosk file://$GITHUB_WORKSPACE/index.html &
         sleep 5
 
-        # 3. FFmpeg මගින් Screen එක පමණක් Capture කර YouTube වෙත ස්ථාවරව Stream කිරීම (Silent Audio සමග)
+        # 4. FFmpeg මගින් Display සහ Audio Capture කර YouTube වෙත Live Stream කිරීම
         ffmpeg -re -f x11grab -draw_mouse 0 -s 1920x1080 -i :99.0 \
-        -f lavfi -i anullsrc=channel_layout=stereo:sample_rate=44100 \
+        -f pulse -i VirtualSink.monitor \
         -c:v libx264 -preset ultrafast -tune zerolatency -pix_fmt yuv420p -g 60 -b:v 3000k \
-        -c:a aac -b:a 128k \
-        -shortest \
+        -c:a aac -b:a 128k -ar 44100 \
         -flvflags no_duration_filesize \
         -reconnect 1 -reconnect_at_eof 1 -reconnect_streamed 1 -reconnect_delay_max 2 \
         -f flv "rtmp://a.rtmp.youtube.com/live2/$YOUTUBE_STREAM_KEY"
-        # 2. Chromium Browser එක Pop-up සහ Infobars මුლින්ම Disable කර Fullscreen කිරීම
-        chromium-browser --no-sandbox --disable-setuid-sandbox --disable-infobars --disable-session-crashed-bubble --disable-popup-blocking --autoplay-policy=no-user-gesture-required --start-fullscreen --kiosk file://$GITHUB_WORKSPACE/index.html &
-        sleep 5
