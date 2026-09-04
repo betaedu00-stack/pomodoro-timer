@@ -11,7 +11,7 @@ jobs:
     - name: Checkout Code
       uses: actions/checkout@v4
 
-    - name: Install Streaming Tools & Window Manager
+    - name: Install Streaming Tools
       run: |
         sudo apt-get update
         sudo apt-get install -y ffmpeg xvfb fluxbox chromium-browser pulseaudio dbus-x11 python3
@@ -20,43 +20,46 @@ jobs:
       env:
         YOUTUBE_STREAM_KEY: ${{ secrets.YOUTUBE_STREAM_KEY }}
       run: |
-        # 1. Virtual Display (1920x1080) ආරම්භ කිරීම
+        # 1. Virtual Display (:99) ආරම්භ කිරීම
         Xvfb :99 -screen 0 1920x1080x24 &
         export DISPLAY=:99
         sleep 2
 
-        # 2. Fluxbox Window Manager ආරම්භ කිරීම (Screen එක නිවැරදිව Active කිරීමට)
+        # 2. Fluxbox Desktop Window Manager ආරම්භ කිරීම
         fluxbox &
-        sleep 1
+        sleep 2
 
-        # 3. Virtual Audio Sink සක්‍රීය කිරීම (Chromium එකට කලින් මෙය සිදු විය යුතුය)
+        # 3. Audio Server එක සක්‍රීය කිරීම
         export $(dbus-launch)
         pulseaudio --start --exit-idle-time=-1 || true
-        sleep 2
+        sleep 1
         pacmd load-module module-null-sink sink_name=VirtualSink sink_properties=device.description="VirtualSink" || true
         pacmd set-default-sink VirtualSink || true
 
-        # 4. Local Web Server ආරම්භ කිරීම
+        # 4. Local Python Web Server එක ආරම්භ කිරීම
         python3 -m http.server 8000 --directory "$GITHUB_WORKSPACE" &
-        sleep 2
+        sleep 3
 
-        # 5. Chromium (SwiftShader CPU rendering මගින් Blackscreen ප්‍රශ්නය විසඳීම)
+        # 5. Chromium Browser එක Virtual Display එක මතට ඍජුවම Fullscreen Open කිරීම
         mkdir -p /tmp/chrome-profile
-        chromium-browser \
+        DISPLAY=:99 chromium-browser \
           --user-data-dir=/tmp/chrome-profile \
           --no-sandbox \
           --disable-setuid-sandbox \
+          --disable-gpu \
           --disable-dev-shm-usage \
-          --use-gl=swiftshader \
-          --enable-webgl \
+          --disable-software-rasterizer \
+          --no-first-run \
+          --no-default-browser-check \
           --window-size=1920,1080 \
           --window-position=0,0 \
           --start-fullscreen \
+          --start-maximized \
           --autoplay-policy=no-user-gesture-required \
           --kiosk http://localhost:8000/index.html &
-        sleep 10
+        sleep 8
 
-        # 6. FFmpeg මගින් Capture කර YouTube වෙත Stream කිරීම
+        # 6. Screen සහ Audio Capture කර YouTube Live වෙත Stream කිරීම
         ffmpeg -f x11grab -draw_mouse 0 -video_size 1920x1080 -i :99.0 \
         -f pulse -i VirtualSink.monitor \
         -c:v libx264 -preset ultrafast -tune zerolatency -pix_fmt yuv420p -g 60 -b:v 2500k \
