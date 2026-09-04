@@ -96,8 +96,6 @@
 </head>
 <body>
 
-    <audio id="bgAudio" autoplay loop crossorigin="anonymous"></audio>
-
     <div class="dashboard-container">
         <div class="logo-main">study with me</div>
 
@@ -117,7 +115,6 @@
     // Timers in seconds
     const TIMES = { intro: 300, pomo: 1500, short: 300, long: 600 };
 
-    // High quality 4K Study & Calm Nature Backgrounds
     const STUDY_BACKGROUNDS = [
         "https://images.unsplash.com/photo-1516979187457-637abb4f9353?q=80&w=2560&auto=format&fit=crop",
         "https://images.unsplash.com/photo-1497633762265-9d179a990aa6?q=80&w=2560&auto=format&fit=crop",
@@ -131,28 +128,92 @@
         "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=2560&auto=format&fit=crop"
     ];
 
-    // Study = Calm Ambient / Focus Tone | Break = Enjoyable / Relaxing Lofi Music
-    const AUDIO_STREAMS = {
-        intro: "https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3",
-        pomo: "https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3",  // Calm / Deep Focus Ambient Tone
-        short: "https://cdn.pixabay.com/download/audio/2022/01/18/audio_d0a13f69d2.mp3", // Enjoyable / Upbeat Lofi
-        long: "https://cdn.pixabay.com/download/audio/2022/03/15/audio_c8c8a73467.mp3"   // Refreshing Enjoyable Track
-    };
-
     let currentSessionType = 'intro';
     let timeLeft = TIMES.intro;
     let studySessionsCompleted = 0;
+
+    // Web Audio API Sound Generator (100% Copyright Free & Generated Live)
+    let audioCtx = null;
+    let activeNodes = [];
+
+    function stopAudio() {
+        activeNodes.forEach(node => {
+            try {
+                if (node.stop) node.stop();
+                if (node.disconnect) node.disconnect();
+            } catch(e) {}
+        });
+        activeNodes = [];
+    }
+
+    function playAudio(type) {
+        stopAudio();
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+
+        if (type === 'pomo' || type === 'intro') {
+            // Study Time: Soft Pink/Brown Noise (Deep Focus & Calm Fan/Rain-like hum)
+            const bufferSize = audioCtx.sampleRate * 2;
+            const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+            const output = noiseBuffer.getChannelData(0);
+            let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+            
+            for (let i = 0; i < bufferSize; i++) {
+                let white = Math.random() * 2 - 1;
+                b0 = 0.99886 * b0 + white * 0.0555179;
+                b1 = 0.99332 * b1 + white * 0.0750759;
+                b2 = 0.96900 * b2 + white * 0.1538520;
+                b3 = 0.86650 * b3 + white * 0.3104856;
+                b4 = 0.55000 * b4 + white * 0.5329522;
+                b5 = -0.7616 * b5 - white * 0.0168980;
+                output[i] = b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362;
+                output[i] *= 0.03; // Volume level
+                b6 = white * 0.115926;
+            }
+
+            const whiteNoise = audioCtx.createBufferSource();
+            whiteNoise.buffer = noiseBuffer;
+            whiteNoise.loop = true;
+
+            const filter = audioCtx.createBiquadFilter();
+            filter.type = 'lowpass';
+            filter.frequency.setValueAtTime(400, audioCtx.currentTime);
+
+            whiteNoise.connect(filter);
+            filter.connect(audioCtx.destination);
+            whiteNoise.start();
+            activeNodes.push(whiteNoise);
+
+        } else {
+            // Break Time: Enjoyable Harmonic Soft Chords (Relaxing tones)
+            const frequencies = [261.63, 329.63, 392.00]; // C Major chord tones
+            frequencies.forEach(freq => {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                
+                gain.gain.setValueAtTime(0.015, audioCtx.currentTime);
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                activeNodes.push(osc);
+            });
+        }
+    }
     
     function updateTheme(type) {
         let bgList = (type === 'pomo' || type === 'intro') ? STUDY_BACKGROUNDS : BREAK_BACKGROUNDS;
         let randomIndex = Math.floor(Math.random() * bgList.length);
         document.body.style.backgroundImage = `url('${bgList[randomIndex]}')`;
 
-        const audio = document.getElementById('bgAudio');
-        if (audio.src !== AUDIO_STREAMS[type]) {
-            audio.src = AUDIO_STREAMS[type];
-            audio.play().catch(e => console.log("Audio play deferred:", e));
-        }
+        playAudio(type);
     }
 
     function updateDisplay() {
