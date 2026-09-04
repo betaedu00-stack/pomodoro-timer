@@ -11,10 +11,12 @@ jobs:
     - name: Checkout Code
       uses: actions/checkout@v4
 
-    - name: Install Streaming Tools
+    - name: Install Streaming Tools & Google Chrome
       run: |
         sudo apt-get update
-        sudo apt-get install -y ffmpeg xvfb fluxbox chromium-browser pulseaudio dbus-x11 python3
+        sudo apt-get install -y ffmpeg xvfb fluxbox pulseaudio dbus-x11 python3 wget
+        wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+        sudo dpkg -i google-chrome-stable_current_amd64.deb || sudo apt-get install -f -y
 
     - name: Start Live Stream to YouTube
       env:
@@ -40,9 +42,9 @@ jobs:
         python3 -m http.server 8000 --directory "$GITHUB_WORKSPACE" &
         sleep 3
 
-        # 5. Chromium Browser එක Virtual Display එක මතට ඍජුවම Fullscreen Open කිරීම
+        # 5. Google Chrome Browser එක Fullscreen Open කිරීම (Snap නැති නිසා 100% වැඩ කරයි)
         mkdir -p /tmp/chrome-profile
-        DISPLAY=:99 chromium-browser \
+        google-chrome \
           --user-data-dir=/tmp/chrome-profile \
           --no-sandbox \
           --disable-setuid-sandbox \
