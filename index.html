@@ -1,14 +1,17 @@
 <!DOCTYPE html>
-<html lang="si">
+<html lang="en" class="notranslate">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="google" content="notranslate">
+    <meta name="referrer" content="no-referrer">
     <title>Study With Me - Automated Pomodoro</title>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&family=Playfair+Display:ital@1&display=swap" rel="stylesheet">
     <style>
+        * { box-sizing: border-box; }
         body {
             font-family: 'Montserrat', sans-serif;
-            background-color: #0f172a;
+            background-color: #0b0f19;
             color: #ffffff;
             margin: 0;
             display: flex;
@@ -19,10 +22,10 @@
             background-size: cover;
             background-position: center;
             position: relative;
-            transition: background-image 1s ease-in-out;
+            transition: background-image 1.5s ease-in-out;
         }
 
-        /* Dark Overlay for better text visibility */
+        /* Calm dark overlay for high contrast */
         body::before {
             content: '';
             position: absolute;
@@ -37,33 +40,33 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 20px;
+            gap: 15px;
         }
 
-        .header { margin-bottom: 30px; }
-        
         .logo-main {
             font-family: 'Playfair Display', serif;
             font-style: italic;
-            font-size: 3.5rem;
+            font-size: 4rem;
             font-weight: 400;
             color: white;
+            text-shadow: 0px 4px 15px rgba(0,0,0,0.7);
         }
 
         .tab-group {
             display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
+            gap: 12px;
+            margin-bottom: 10px;
         }
         .tab-btn {
-            background-color: rgba(255, 255, 255, 0.1);
+            background-color: rgba(255, 255, 255, 0.15);
             color: white;
             border: 1px solid rgba(255, 255, 255, 0.3);
             border-radius: 50px;
-            padding: 10px 25px;
+            padding: 10px 28px;
             font-weight: 600;
-            font-size: 0.9rem;
-            cursor: default;
+            font-size: 1rem;
+            backdrop-filter: blur(8px);
+            transition: all 0.3s ease;
         }
         .tab-btn.active {
             background-color: white;
@@ -76,72 +79,59 @@
             font-weight: 700;
             color: white;
             letter-spacing: -2px;
-            margin-bottom: 20px;
-            text-shadow: 0px 5px 15px rgba(0,0,0,0.5);
+            line-height: 1;
+            text-shadow: 0px 5px 25px rgba(0,0,0,0.8);
         }
 
         #cycle-counter {
-            font-size: 1.2rem;
+            font-size: 1.4rem;
             font-weight: 600;
             color: #38bdf8;
-            margin-bottom: 30px;
             text-transform: uppercase;
-            letter-spacing: 2px;
+            letter-spacing: 3px;
+            text-shadow: 0px 2px 10px rgba(0,0,0,0.8);
         }
     </style>
 </head>
 <body>
 
-    <!-- Copyright-free ambient study music (SomaFM Drone Zone - 24/7 Zero Ads/Strikes) -->
-    <audio id="bgMusic" autoplay loop>
-        <source src="https://ice1.somafm.com/dronezone-128-mp3" type="audio/mpeg">
+    <!-- Ultra-Calm, Soothing Ambient Stream (SomaFM Groove Salad - Copyright Safe) -->
+    <audio id="bgMusic" autoplay loop crossorigin="anonymous">
+        <source src="https://ice2.somafm.com/groovesalad-128-mp3" type="audio/mpeg">
     </audio>
 
     <div class="dashboard-container">
-        <!-- Updated Logo -->
-        <div class="header">
-            <div class="logo-main">study with me</div>
-        </div>
+        <div class="logo-main">study with me</div>
 
-        <!-- Session Indicators -->
         <div class="tab-group">
-            <button class="tab-btn active" id="tab-pomo">pomodoro</button>
+            <button class="tab-btn active" id="tab-intro">get ready</button>
+            <button class="tab-btn" id="tab-pomo">pomodoro</button>
             <button class="tab-btn" id="tab-short">short break</button>
             <button class="tab-btn" id="tab-long">long break</button>
         </div>
 
-        <!-- Timer -->
-        <div id="timer">25:00</div>
+        <div id="timer">05:00</div>
         
-        <!-- Cycle Tracker -->
-        <div id="cycle-counter">Study Session: 1/4</div>
+        <div id="cycle-counter">Ready to study</div>
     </div>
 
 <script>
-    // Times in seconds
-    const TIMES = { pomo: 1500, short: 300, long: 600 }; // 25m, 5m, 10m
+    // Times in seconds: Intro (5m), Pomo (25m), Short (5m), Long (10m)
+    const TIMES = { intro: 300, pomo: 1500, short: 300, long: 600 };
     
-    // Aesthetic Animated Lo-fi GIFs
+    // High Quality Aesthetic Nature/Lo-Fi Background Animations
     const bgGifs = [
-        "https://media.giphy.com/media/Lmq2XFqI3t0Xh1A6zP/giphy.gif",
-        "https://media.giphy.com/media/3o7TKrEzvLbgzG1nQA/giphy.gif",
-        "https://media.giphy.com/media/xT9IgFbwSnsg8x1l5u/giphy.gif",
-        "https://media.giphy.com/media/5wWf7H0qoWaNnkZBucU/giphy.gif",
-        "https://media.giphy.com/media/3o6Zt6b5Pz41bM6q0w/giphy.gif",
-        "https://media.giphy.com/media/xUPGcMbwV5v5wW3Fhm/giphy.gif",
-        "https://media.giphy.com/media/26tnb6XN9nJ1A28O4/giphy.gif",
-        "https://media.giphy.com/media/3o7aD2saalEvpjtce4/giphy.gif",
-        "https://media.giphy.com/media/l41YcWXYE2gIuF5wQ/giphy.gif",
-        "https://media.giphy.com/media/26xBsNK6K4y43nEac/giphy.gif",
-        "https://media.giphy.com/media/l0HlJzWMGDe2709Q4/giphy.gif",
-        "https://media.giphy.com/media/xT1XG223X34g4pB5hC/giphy.gif"
+        "https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExOHp1ZHZpa2dyMHFjZDFxOHM5MThqNmxuaXJmc2k1MXdndmIxdGZyNyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/3o7TKrEzvLbgzG1nQA/giphy.gif",
+        "https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExM3ZydnA0cnR1dzkyYmxreXV4OWdpOHRwMm9uOGd1NDJqcjdidWZpNSZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/Lmq2XFqI3t0Xh1A6zP/giphy.gif",
+        "https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExeXJ4bnBveHJocHZpZGttdHdycmF5dnd6cnIxb3R2bW9ndDFvYnp0cyZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/xT9IgFbwSnsg8x1l5u/giphy.gif",
+        "https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExNWVveTJ4aXNudmt5MnVpMnltczU5MXQxaTBxMHBzZzdzczl6MXllYiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/5wWf7H0qoWaNnkZBucU/giphy.gif",
+        "https://i.giphy.com/media/v1.Y2lkPTc5MGI3NjExNDMyaWZ2dXNxeGNxeWl4eDZnaWh2dTRrMGs1eThoNWw4aDV3dHlreCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/3o6Zt6b5Pz41bM6q0w/giphy.gif"
     ];
 
-    let currentSessionType = 'pomo';
-    let timeLeft = TIMES.pomo;
+    let currentSessionType = 'intro';
+    let timeLeft = TIMES.intro;
     let studySessionsCompleted = 0;
     
-    // Function to get a random background
     function changeBackground() {
         let randomIndex = Math.floor(Math.random() * bgGifs.length);
         document.body.style.backgroundImage = `url('${bgGifs[randomIndex]}')`;
@@ -156,37 +146,45 @@
 
     function updateUI(type) {
         document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-        document.getElementById(`tab-${type}`).classList.add('active');
+        const activeTab = document.getElementById(`tab-${type}`);
+        if (activeTab) activeTab.classList.add('active');
         
-        let cycleText = type === 'pomo' ? 
-            `Study Session: ${(studySessionsCompleted % 4) + 1}/4` : 
-            (type === 'short' ? "Rest your eyes..." : "Take a long break!");
+        let cycleText = "";
+        if (type === 'intro') {
+            cycleText = "Ready to study";
+        } else if (type === 'pomo') {
+            cycleText = `Study Session: ${(studySessionsCompleted % 4) + 1}/4`;
+        } else if (type === 'short') {
+            cycleText = "Rest your eyes...";
+        } else if (type === 'long') {
+            cycleText = "Take a long break!";
+        }
         document.getElementById('cycle-counter').innerText = cycleText;
     }
 
     function handleSessionEnd() {
-        if (currentSessionType === 'pomo') {
-            studySessionsCompleted++;
-            // Check if 4 sessions are completed
-            if (studySessionsCompleted % 4 === 0) {
-                currentSessionType = 'long';
-                timeLeft = TIMES.long; // 10 min break
-            } else {
-                currentSessionType = 'short';
-                timeLeft = TIMES.short; // 5 min break
-            }
-        } else {
-            // Break ended, start new study session and change BG
+        if (currentSessionType === 'intro') {
             currentSessionType = 'pomo';
             timeLeft = TIMES.pomo;
-            changeBackground(); // Change animated BG for every new study session
+        } else if (currentSessionType === 'pomo') {
+            studySessionsCompleted++;
+            if (studySessionsCompleted % 4 === 0) {
+                currentSessionType = 'long';
+                timeLeft = TIMES.long;
+            } else {
+                currentSessionType = 'short';
+                timeLeft = TIMES.short;
+            }
+        } else {
+            currentSessionType = 'pomo';
+            timeLeft = TIMES.pomo;
+            changeBackground();
         }
         
         updateUI(currentSessionType);
         updateDisplay();
     }
 
-    // Auto-running logic
     setInterval(() => {
         if (timeLeft > 0) {
             timeLeft--;
@@ -196,16 +194,9 @@
         }
     }, 1000);
 
-    // Initial setup
     changeBackground();
-    updateUI('pomo');
+    updateUI('intro');
     updateDisplay();
-
-    // Ensure audio plays
-    document.body.addEventListener('click', () => {
-        document.getElementById('bgMusic').play();
-    }, {once: true});
-
 </script>
 </body>
 </html>
